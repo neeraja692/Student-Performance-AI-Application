@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduNova | Performance Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #0a0e1a;
+            --deep: #0f172a;
+            --mid: #1e293b;
+            --surface: rgba(255,255,255,0.04);
+            --rim: rgba(125,211,252,0.15);
+            --sky: #7dd3fc;
+            --sky-bright: #38bdf8;
+            --amber: #fbbf24;
+            --emerald: #34d399;
+            --rose: #fb7185;
+            --text: #e2e8f0;
+            --muted: #64748b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--ink);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        /* Noise overlay */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 0; opacity: 0.4;
+        }
+        /* Gradient orbs */
+        .orb {
+            position: fixed; border-radius: 50%;
+            filter: blur(80px); pointer-events: none; z-index: 0;
+        }
+        .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(56,189,248,0.08), transparent 70%); top: -100px; right: -100px; }
+        .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(251,191,36,0.06), transparent 70%); bottom: 200px; left: -100px; }
+
+        main { position: relative; z-index: 1; }
+
+        /* ─── CARD ─── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--rim);
+            border-radius: 20px;
+            backdrop-filter: blur(16px);
+            transition: border-color 0.3s;
+        }
+        .card:hover { border-color: rgba(125,211,252,0.3); }
+
+        /* ─── INPUTS ─── */
+        .field {
+            background: rgba(15,23,42,0.7);
+            border: 1px solid rgba(125,211,252,0.15);
+            color: var(--text);
+            border-radius: 10px;
+            padding: 10px 14px;
+            width: 100%;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.25s;
+        }
+        .field:focus { outline: none; border-color: var(--sky); box-shadow: 0 0 0 3px rgba(125,211,252,0.12); }
+        .field::placeholder { color: var(--muted); }
+        label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); display: block; margin-bottom: 5px; }
+
+        /* ─── SUBJECT MARKS ─── */
+        .subject-row {
+            display: grid;
+            grid-template-columns: 1fr 100px 100px;
+            gap: 10px;
+            align-items: end;
+        }
+        .subject-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(125,211,252,0.08);
+            border: 1px solid var(--rim);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.8rem;
+        }
+        .grade-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+
+        /* ─── SCORE RING ─── */
+        .ring-wrap { position: relative; width: 180px; height: 180px; margin: 0 auto; }
+        #ring-svg { transform: rotate(-90deg); }
+        .ring-label {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        .ring-num { font-size: 2.8rem; font-weight: 700; line-height: 1; }
+        .ring-sub { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); }
+
+        /* ─── LEVEL BADGE ─── */
+        .level-pill {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 20px; border-radius: 50px;
+            font-weight: 600; font-size: 0.85rem;
+            border: 1px solid;
+        }
+
+        /* ─── PROGRESS BAR ─── */
+        .prog-bar { height: 6px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; }
+        .prog-fill { height: 100%; border-radius: 10px; transition: width 1.2s cubic-bezier(.22,1,.36,1); }
+
+        /* ─── ANIMATE IN ─── */
+        @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
+        .fade-up { animation: fadeUp 0.6s ease both; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+
+        /* ─── CTA BUTTON ─── */
+        .cta-btn {
+            background: linear-gradient(135deg, var(--sky-bright), #0ea5e9);
+            color: var(--ink);
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 16px 48px;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(56,189,248,0.3);
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 0 50px rgba(56,189,248,0.5); }
+        .cta-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* ─── CHIP ─── */
+        .chip {
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-size: 0.83rem;
+            border-left: 3px solid;
+            line-height: 1.5;
+        }
+
+        /* ─── CHAT ─── */
+        .chat-msg { padding: 10px 14px; border-radius: 14px; font-size: 0.85rem; max-width: 88%; line-height: 1.55; }
+        .bot-msg { background: rgba(125,211,252,0.1); border: 1px solid rgba(125,211,252,0.18); align-self: flex-start; }
+        .user-msg { background: #0ea5e9; color: #0a0e1a; align-self: flex-end; font-weight: 500; }
+        #chat-window { height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 4px 2px; scrollbar-width: thin; scrollbar-color: var(--rim) transparent; }
+
+        /* ─── DIVIDER ─── */
+        .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--rim), transparent); }
+
+        /* ─── STAT BOX ─── */
+        .stat-box { text-align: center; padding: 20px 12px; }
+        .stat-val { font-size: 1.8rem; font-weight: 700; }
+        .stat-lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-top: 4px; }
+
+        /* ─── TYPING INDICATOR ─── */
+        @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
+        .dot { width: 6px; height: 6px; background: var(--sky); border-radius: 50%; display: inline-block; margin: 0 2px; animation: blink 1.4s infinite ease-in-out both; }
+        .dot:nth-child(2){animation-delay:0.2s}.dot:nth-child(3){animation-delay:0.4s}
+
+        /* scrollbar for charts */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--rim); border-radius: 2px; }
+
+        /* Sticky header */
+        .sticky-bar { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(20px); background: rgba(10,14,26,0.85); border-bottom: 1px solid var(--rim); }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <main>
+        <!-- STICKY TOP BAR -->
+        <div class="sticky-bar px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <circle cx="14" cy="14" r="13" stroke="#38bdf8" stroke-width="1.5"/>
+                    <path d="M8 14l4 4 8-8" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="font-bold text-sky-300 tracking-wide text-sm">STUDY<span style="font-family:'DM Serif Display',serif;font-style:italic;font-weight:400">Oracle</span></span>
+            </div>
+            <span class="text-[10px] text-muted tracking-widest uppercase">Performance Analytics</span>
+        </div>
+
+        <div class="max-w-5xl mx-auto px-4 py-12 space-y-8">
+
+            <!-- HEADER -->
+            <div class="text-center fade-up">
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">
+                    Student <span style="font-family:'DM Serif Display',serif; font-style:italic; color:#7dd3fc;">Performance</span> Dashboard
+                </h1>
+                <p class="text-sm text-muted">Input your academic data · Get AI-powered insights · Track your growth</p>
+            </div>
+
+            <!-- ROW 1: Profile + Behaviour -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 fade-up delay-1">
+                <!-- Student Profile -->
+                <div class="card p-7">
+                    <div class="flex items-center gap-2 mb-5">
+                        <span class="text-sky-400 text-lg">❄️</span>
+                        <span class="font-semibold text-sky-200 text-sm uppercase tracking-wider">Student Profile</span>
+                    </div>
+                    <div class="space-y-4">
+                        <div><label>Full Name</label><input type="text" id="name" placeholder="e.g. Emily Johnson" class="field"></div>
+                        <div><label>Roll No / ID</label><input type="text" id="rollno" placeholder="e.g. 26" class="field"></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label>Domain / Field</label>
+                                <input type="text" id="domain" placeholder="Engineering" class="field">
+                            </div>
+                            <div>
+                                <label>Current Year</label>
+                                <select id="year" class="field">
+                                    <option value="1">Year 1</option>
+                                    <option value="2">Year 2</option>
+                                    <option value="3">Year 3</option>
+                                    <option value="4">Year 4</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Behavioural Factors -->
+                <div class="card p-7">
+                    <div class="flex items-center gap-2 mb-5">
+                        <span class="text-amber-400 text-lg">🏔️</span>
+                        <span class="font-semibold text-sky-200 text-sm uppercase tracking-wider">Behavioural Factors</span>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label>Attendance / Participation Rate (%)</label>
+                            <input type="number" id="attend" placeholder="e.g. 90" min="0" max="100" class="field">
+                        </div>
+                        <div>
+                            <label>Focus Sustainability (1–10) — <span id="focusVal">5</span></label>
+                            <input type="range" id="focus" min="1" max="10" value="5" oninput="document.getElementById('focusVal').textContent=this.value" class="w-full accent-sky-400 mt-1">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label>Submissions</label>
+                                <select id="time" class="field">
+                                    <option value="10">Always Punctual</option>
+                                    <option value="6">Mostly On Time</option>
+                                    <option value="2">Often Delayed</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Collaboration</label>
+                                <select id="peer" class="field">
+                                    <option value="10">Active Contributor</option>
+                                    <option value="5">Solo Performer</option>
+                                    <option value="2">Needs Work</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 2: Subject Marks -->
+            <div class="card p-7 fade-up delay-2">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-2">
+                        <span class="text-emerald-400 text-lg">📊</span>
+                        <span class="font-semibold text-sky-200 text-sm uppercase tracking-wider">Subject-wise Marks</span>
+                    </div>
+                    <button onclick="addSubjectRow()" class="text-sky-400 hover:text-sky-200 transition-colors text-xs flex items-center gap-1 border border-sky-400/30 rounded-lg px-3 py-1.5 hover:border-sky-400/60">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><line x1="6" y1="1" x2="6" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="6" x2="11" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        Add Subject
+                    </button>
+                </div>
+                <!-- Header -->
+                <div class="subject-row mb-3 px-1">
+                    <label style="margin:0">Subject Name</label>
+                    <label style="margin:0">Marks Obtained</label>
+                    <label style="margin:0">Out of (Max)</label>
+                </div>
+                <div id="subjects-list" class="space-y-3">
+                    <!-- default subjects -->
+                </div>
+                <p class="text-xs text-muted mt-4">* Add marks for each subject to get a comprehensive radar analysis.</p>
+            </div>
+
+            <!-- ANALYSE BUTTON -->
+            <div class="text-center fade-up delay-3">
+                <button id="analyse-btn" onclick="runAnalysis()" class="cta-btn">
+                    ✦ Reveal EduNova Analysis
+                </button>
+            </div>
+
+            <!-- ══════════════════ RESULTS SECTION ══════════════════ -->
+            <div id="results-section" class="hidden space-y-6">
+
+                <!-- Score + Level + Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 fade-up">
+                    <!-- Score Ring -->
+                    <div class="card p-8 flex flex-col items-center justify-center gap-4">
+                        <div class="ring-wrap">
+                            <svg id="ring-svg" width="180" height="180" viewBox="0 0 180 180">
+                                <circle cx="90" cy="90" r="76" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="12"/>
+                                <circle id="ring-progress" cx="90" cy="90" r="76" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round"
+                                    stroke-dasharray="477.5" stroke-dashoffset="477.5" style="transition: stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1)"/>
+                                <defs>
+                                    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#38bdf8"/>
+                                        <stop offset="100%" stop-color="#34d399"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div class="ring-label">
+                                <span class="ring-num" id="ring-num" style="color:#38bdf8">0%</span>
+                                <span class="ring-sub">Performance</span>
+                            </div>
+                        </div>
+                        <div id="level-badge" class="level-pill"></div>
+                    </div>
+
+                    <!-- Key Stats -->
+                    <div class="card p-4 col-span-2">
+                        <p class="text-xs text-muted uppercase tracking-wider px-4 pt-2 mb-3">Key Metrics Breakdown</p>
+                        <div class="grid grid-cols-3 divide-x divide-white/5">
+                            <div class="stat-box">
+                                <div class="stat-val text-sky-400" id="stat-avg">—</div>
+                                <div class="stat-lbl">Avg Score</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-val text-emerald-400" id="stat-top">—</div>
+                                <div class="stat-lbl">Top Subject</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-val text-rose-400" id="stat-weak">—</div>
+                                <div class="stat-lbl">Needs Focus</div>
+                            </div>
+                        </div>
+                        <div class="divider my-4"></div>
+                        <div class="px-4 pb-4 space-y-3" id="bar-list"></div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 fade-up delay-1">
+                    <div class="card p-6">
+                        <p class="text-xs text-muted uppercase tracking-wider mb-4">Subject Radar</p>
+                        <canvas id="radarChart" height="240"></canvas>
+                    </div>
+                    <div class="card p-6">
+                        <p class="text-xs text-muted uppercase tracking-wider mb-4">Marks Distribution</p>
+                        <canvas id="barChart" height="240"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tips Section -->
+                <div class="card p-8 fade-up delay-2">
+                    <div class="flex items-center gap-2 mb-6">
+                        <span class="text-amber-400">💡</span>
+                        <span class="font-semibold text-sky-200 text-sm uppercase tracking-wider">Personalised Suggestions</span>
+                    </div>
+                    <div id="tips-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                </div>
+
+                <!-- ── AI CHAT ── -->
+                <div class="card p-7 fade-up delay-3" id="oracle-chat">
+                    <div class="flex items-center gap-3 mb-5 pb-4 border-b border-white/8">
+                        <div class="relative">
+                            <div class="w-8 h-8 rounded-full bg-sky-400/20 flex items-center justify-center text-sm">🤖</div>
+                            <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-ink"></div>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-sm text-white">EduNova AI Advisor</div>
+                            <div class="text-xs text-muted">Ask anything about your performance</div>
+                        </div>
+                        <div class="ml-auto text-xs text-emerald-400 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Online
+                        </div>
+                    </div>
+                    <div id="chat-window"></div>
+                    <div class="divider my-4"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="ai-input" placeholder="Ask about your results, how to improve, study strategies…" class="field flex-1 text-sm">
+                        <button onclick="sendChatMessage()" class="cta-btn py-2.5 px-5 text-xs flex-shrink-0" style="padding:10px 18px">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11Z"/></svg>
+                        </button>
+                    </div>
+                    <!-- Quick prompts -->
+                    <div class="flex flex-wrap gap-2 mt-3" id="quick-prompts"></div>
+                </div>
+
+            </div> <!-- /results-section -->
+
+        </div>
+    </main>
+
+    <script>
+    // ── DEFAULT SUBJECTS ──
+    const defaultSubjects = [
+        "Mathematics", "Physics", "Chemistry",
+        "English", "Computer Science"
+    ];
+
+    function addSubjectRow(name = "") {
+        const list = document.getElementById("subjects-list");
+        const row = document.createElement("div");
+        row.className = "subject-row items-center";
+        row.innerHTML = `
+            <input type="text" placeholder="Subject name" value="${name}" class="field subject-name" style="font-size:0.85rem">
+            <input type="number" placeholder="e.g. 78" min="0" class="field subject-marks" style="font-size:0.85rem">
+            <div class="flex gap-2">
+                <input type="number" placeholder="100" min="1" value="100" class="field subject-max" style="font-size:0.85rem">
+                <button onclick="this.closest('.subject-row').remove()" class="text-rose-400 hover:text-rose-300 transition-colors flex-shrink-0" title="Remove">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="2" y1="2" x2="12" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="2" x2="2" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+            </div>`;
+        list.appendChild(row);
+    }
+
+    defaultSubjects.forEach(s => addSubjectRow(s));
+
+    // ── COLLECT SUBJECTS ──
+    function getSubjects() {
+        const rows = document.querySelectorAll("#subjects-list .subject-row");
+        const out = [];
+        rows.forEach(row => {
+            const name  = row.querySelector(".subject-name")?.value?.trim();
+            const marks = parseFloat(row.querySelector(".subject-marks")?.value) || 0;
+            const max   = parseFloat(row.querySelector(".subject-max")?.value) || 100;
+            if (name) out.push({ name, marks, max, pct: Math.min(100, Math.round((marks / max) * 100)) });
+        });
+        return out;
+    }
+
+    // ── COLOR HELPERS ──
+    function pctColor(p) {
+        if (p >= 80) return "#34d399";
+        if (p >= 60) return "#fbbf24";
+        return "#fb7185";
+    }
+
+    // ── LEVEL BADGE ──
+    function getLevel(score) {
+        if (score >= 90) return { label: "🏆 Distinction", color: "#fbbf24", bg: "rgba(251,191,36,0.1)", border: "rgba(251,191,36,0.4)" };
+        if (score >= 75) return { label: "⭐ Merit", color: "#34d399", bg: "rgba(52,211,153,0.1)", border: "rgba(52,211,153,0.4)" };
+        if (score >= 60) return { label: "✅ Pass", color: "#38bdf8", bg: "rgba(56,189,248,0.1)", border: "rgba(56,189,248,0.4)" };
+        return { label: "📚 Needs Improvement", color: "#fb7185", bg: "rgba(251,113,133,0.1)", border: "rgba(251,113,133,0.4)" };
+    }
+
+    // ── CHART INSTANCES ──
+    let radarChart = null, barChart = null;
+
+    // ── MAIN ANALYSIS ──
+    function runAnalysis() {
+        const subjects = getSubjects();
+        if (!subjects.length) { alert("Add subjects first"); return; }
+
+        document.getElementById("results-section").classList.remove("hidden");
+
+        // ── CALCULATION ──
+        const avg = subjects.reduce((sum, s) => sum + s.pct, 0) / subjects.length;
+        const finalScore = Math.round(avg);
+        const sorted = [...subjects].sort((a, b) => b.pct - a.pct);
+        const best = sorted[0];
+        const weak = sorted[sorted.length - 1];
+
+        // ── RING ──
+        const circle = document.getElementById("ring-progress");
+        const circumference = 2 * Math.PI * 76;
+        circle.style.strokeDasharray = circumference;
+        circle.style.strokeDashoffset = circumference - (finalScore / 100) * circumference;
+        document.getElementById("ring-num").textContent = finalScore + "%";
+
+        // ── LEVEL BADGE ──
+        const lvl = getLevel(finalScore);
+        const badge = document.getElementById("level-badge");
+        badge.textContent = lvl.label;
+        badge.style.color = lvl.color;
+        badge.style.background = lvl.bg;
+        badge.style.borderColor = lvl.border;
+
+        // ── STATS ──
+        document.getElementById("stat-avg").textContent = Math.round(avg) + "%";
+        document.getElementById("stat-top").textContent = best.name;
+        document.getElementById("stat-weak").textContent = weak.name;
+
+        // ── PROGRESS BARS ──
+        const barList = document.getElementById("bar-list");
+        barList.innerHTML = "";
+        subjects.forEach(sub => {
+            barList.innerHTML += `
+            <div>
+                <div class="flex justify-between mb-1" style="font-size:0.82rem">
+                    <span>${sub.name}</span>
+                    <span style="color:${pctColor(sub.pct)}">${sub.pct}%</span>
+                </div>
+                <div class="prog-bar">
+                    <div class="prog-fill" style="width:${sub.pct}%; background:${pctColor(sub.pct)}"></div>
+                </div>
+            </div>`;
+        });
+
+        // ── CHARTS ──
+        if (radarChart) { radarChart.destroy(); radarChart = null; }
+        if (barChart)   { barChart.destroy();   barChart   = null; }
+
+        const chartDefaults = {
+            plugins: { legend: { labels: { color: "#e2e8f0", font: { family: "Space Grotesk" } } } }
+        };
+
+        radarChart = new Chart(document.getElementById("radarChart"), {
+            type: "radar",
+            data: {
+                labels: subjects.map(s => s.name),
+                datasets: [{
+                    label: "Performance %",
+                    data: subjects.map(s => s.pct),
+                    borderColor: "#38bdf8",
+                    backgroundColor: "rgba(56,189,248,0.15)",
+                    pointBackgroundColor: "#38bdf8",
+                    pointBorderColor: "#0a0e1a",
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    r: {
+                        min: 0, max: 100,
+                        ticks: { color: "#64748b", backdropColor: "transparent", stepSize: 20 },
+                        grid: { color: "rgba(125,211,252,0.1)" },
+                        angleLines: { color: "rgba(125,211,252,0.1)" },
+                        pointLabels: { color: "#e2e8f0", font: { size: 11 } }
+                    }
+                }
+            }
+        });
+
+        barChart = new Chart(document.getElementById("barChart"), {
+            type: "bar",
+            data: {
+                labels: subjects.map(s => s.name),
+                datasets: [{
+                    label: "Marks %",
+                    data: subjects.map(s => s.pct),
+                    backgroundColor: subjects.map(s => pctColor(s.pct)),
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    x: { ticks: { color: "#e2e8f0" }, grid: { color: "rgba(125,211,252,0.06)" } },
+                    y: { min: 0, max: 100, ticks: { color: "#64748b" }, grid: { color: "rgba(125,211,252,0.06)" } }
+                }
+            }
+        });
+
+        // ── TIPS ──
+        const tipsEl = document.getElementById("tips-list");
+        tipsEl.innerHTML = "";
+        const tips = generateTips(subjects, finalScore, best, weak);
+        tips.forEach(tip => {
+            tipsEl.innerHTML += `<div class="chip" style="background:rgba(255,255,255,0.03);border-left-color:${tip.color}">${tip.text}</div>`;
+        });
+
+        // ── CONTEXT + CHAT INIT ──
+        window._studentContext = buildContext(subjects, finalScore, avg, best, weak);
+        chatHistory = [];
+        const cw = document.getElementById("chat-window");
+        cw.innerHTML = "";
+        addBotMsg(`Hi ${document.getElementById("name").value || "there"}! 👋 Your overall score is <strong>${finalScore}%</strong>. Ask me anything about your performance or how to improve!`);
+
+        // ── QUICK PROMPTS ──
+        const qp = document.getElementById("quick-prompts");
+        qp.innerHTML = "";
+        ["How can I improve?", `Tips for ${weak.name}`, "Study plan for me", "What's my strength?"].forEach(q => {
+            const btn = document.createElement("button");
+            btn.textContent = q;
+            btn.className = "text-xs px-3 py-1.5 rounded-full border border-sky-400/20 text-sky-300 hover:border-sky-400/50 transition-colors";
+            btn.onclick = () => { document.getElementById("ai-input").value = q; sendChatMessage(); };
+            qp.appendChild(btn);
+        });
+    }
+
+    // ── TIPS GENERATOR ──
+    function generateTips(subjects, score, best, weak) {
+        const tips = [];
+        const attend = parseInt(document.getElementById("attend").value) || 80;
+        const focus = parseInt(document.getElementById("focus").value) || 5;
+
+        if (score >= 80) tips.push({ text: `🌟 Excellent overall performance! Aim for distinction by pushing ${weak.name} above 80%.`, color: "#34d399" });
+        else if (score >= 60) tips.push({ text: `📈 You're on track! Focus on converting your average subjects into strong ones.`, color: "#fbbf24" });
+        else tips.push({ text: `💪 Don't be discouraged — consistent daily revision will move the needle significantly.`, color: "#fb7185" });
+
+        tips.push({ text: `🎯 Your strongest subject is <strong>${best.name}</strong> (${best.pct}%). Use it as a confidence anchor.`, color: "#38bdf8" });
+        tips.push({ text: `⚠️ <strong>${weak.name}</strong> at ${weak.pct}% needs focused attention — try past papers and concept maps.`, color: "#fbbf24" });
+
+        if (attend < 75) tips.push({ text: `📅 Attendance at ${attend}% is below recommended 75%. Missing classes compounds over time.`, color: "#fb7185" });
+        if (focus < 5) tips.push({ text: `🧘 Low focus score (${focus}/10) — try the Pomodoro technique: 25 min focused + 5 min break.`, color: "#7dd3fc" });
+
+        return tips.slice(0, 4);
+    }
+
+    // ── BUILD AI CONTEXT ──
+    function buildContext(subjects, final, avgPct, best, weak) {
+        const name   = document.getElementById("name").value || "the student";
+        const domain = document.getElementById("domain").value || "their field";
+        const attend = document.getElementById("attend").value || "unknown";
+        const focus  = document.getElementById("focus").value;
+        const subStr = subjects.map(s => `${s.name}: ${s.marks}/${s.max} (${s.pct}%)`).join(", ");
+        return `You are EduNova, a helpful and insightful academic advisor AI.
+Student: ${name}, studying ${domain}.
+Overall Performance Index: ${final}%.
+Average subject score: ${Math.round(avgPct)}%.
+Subjects: ${subStr}.
+Best subject: ${best.name} at ${best.pct}%.
+Weakest subject: ${weak.name} at ${weak.pct}%.
+Attendance: ${attend}%, Focus score: ${focus}/10.
+Give specific, actionable, friendly advice based on this data. Be concise (2-3 sentences max per response). Do not repeat the same info. Use markdown bold (**text**) sparingly for emphasis.`;
+    }
+
+    // ── CHAT STATE ──
+    let chatHistory = [];
+
+    function addBotMsg(text) {
+        const cw = document.getElementById("chat-window");
+        const d = document.createElement("div");
+        d.className = "chat-msg bot-msg";
+        d.innerHTML = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>");
+        cw.appendChild(d);
+        cw.scrollTop = cw.scrollHeight;
+    }
+    function addUserMsg(text) {
+        const cw = document.getElementById("chat-window");
+        const d = document.createElement("div");
+        d.className = "chat-msg user-msg";
+        d.textContent = text;
+        cw.appendChild(d);
+        cw.scrollTop = cw.scrollHeight;
+    }
+    function showTyping() {
+        const cw = document.getElementById("chat-window");
+        const d = document.createElement("div");
+        d.className = "chat-msg bot-msg"; d.id = "typing-ind";
+        d.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span>`;
+        cw.appendChild(d); cw.scrollTop = cw.scrollHeight;
+    }
+    function hideTyping() {
+        const t = document.getElementById("typing-ind");
+        if (t) t.remove();
+    }
+
+   window.sendChatMessage = async function () {
+  try {
+    const input = document.getElementById("ai-input").value;
+
+    if (!input.trim()) return;
+
+    // ⚠️ Make sure analysis is done first
+    if (!window._studentContext) {
+      alert("⚠️ Please click 'Reveal EduNova Analysis' first.");
+      return;
+    }
+
+    // 📊 Get dashboard data
+    const subjects = getSubjects();
+    const attendance = parseInt(document.getElementById("attend").value) || 80;
+    const focus = parseInt(document.getElementById("focus").value) || 5;
+
+    addUserMsg(input);
+    showTyping();
+
+    chatHistory.push({ role: "user", content: input });
+
+    // ✅ CREATE res HERE
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: input,
+        studentData: {
+          subjects: subjects,
+          attendance: attendance,
+          focus: focus
+        },
+        history: chatHistory
+      })
+    });
+
+    // ✅ NOW res EXISTS
+    const data = await res.json();
+
+    hideTyping();
+
+    const reply = data.reply || "No response from server";
+
+    chatHistory.push({ role: "assistant", content: reply });
+
+    addBotMsg(reply);
+
+    document.getElementById("ai-input").value = "";
+
+  } catch (e) {
+    console.error(e);
+    hideTyping();
+    addBotMsg("⚠️ Connection error. Please try again.");
+  }
+};
+    </script>
+</body>
+</html>
