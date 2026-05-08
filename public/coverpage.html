@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EduNova | Performance Analytics</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+     body {
+  background: #060D1A;
+  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+.cover {
+  background: #0B1220;
+  border-radius: 0;
+  border: none;
+
+  width: 100%;
+  min-height: 100vh;
+
+  padding: 3rem 4rem;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+    .logo {
+      width: 84px;
+      height: 84px;
+      border-radius: 22px;
+      background: #0F1C35;
+      border: 1px solid #2A3F6A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .logo i { font-size: 38px; color: #4A90D9; }
+
+    .name {
+      font-size: 34px;
+      font-weight: 700;
+      color: #E8F0FF;
+      letter-spacing: 1px;
+    }
+
+    .tagline {
+      font-size: 15px;
+      color: #4A90D9;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #0F1C35;
+      border: 1px solid #1E3355;
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-size: 12px;
+      color: #5A8FCC;
+      margin-top: 1.25rem;
+    }
+
+    .divider {
+      width: 50px;
+      height: 1px;
+      background: #1E3355;
+      margin: 1.5rem auto;
+    }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: #2E4F80;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .desc {
+      font-size: 14px;
+      color: #7A9CC4;
+      max-width: 460px;
+      line-height: 1.8;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: 100%;
+      margin-top: 2rem;
+    }
+
+    .feat {
+      background: #0F1929;
+      border: 1px solid #1A2E50;
+      border-radius: 12px;
+      padding: 16px 10px;
+    }
+
+    .feat i { font-size: 22px; color: #4A90D9; }
+
+    .feat-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #C5D8F5;
+      margin: 8px 0 4px;
+    }
+
+    .feat-desc {
+      font-size: 11px;
+      color: #4A6A99;
+      line-height: 1.55;
+    }
+
+    .steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 480px;
+      margin-top: 2rem;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #1A3460;
+      border: 1px solid #2A4F8A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #5A90D9;
+    }
+
+    .step-text {
+      font-size: 11px;
+      color: #4A6A99;
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .step-line {
+      flex: 1;
+      height: 1px;
+      background: #1A2E50;
+      margin-bottom: 18px;
+    }
+
+    .btn {
+      margin-top: 2rem;
+      padding: 13px 40px;
+      border-radius: 999px;
+      background: #1A4FBF;
+      color: #E8F2FF;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover { background: #2260D9; }
+
+    .note {
+      margin-top: 0.75rem;
+      font-size: 12px;
+      color: #253D65;
+    }
+
+    .footer {
+      margin-top: 1.75rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid #111E35;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+    }
+
+    .footer span {
+      font-size: 11px;
+      color: #253D65;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    @media (max-width: 768px) {
+
+  .cover {
+    padding: 2rem 1.2rem;
+  }
+
+  .name {
+    font-size: 28px;
+  }
+
+  .tagline {
+    font-size: 14px;
+  }
+
+  .features {
+    grid-template-columns: 1fr;
+  }
+
+  .steps {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .step-line {
+    width: 1px;
+    height: 24px;
+    margin: 0;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+  </style>
+</head>
+<body>
+  <div class="cover">
+
+    <div class="logo">
+      <i class="ti ti-chart-radar"></i>
+    </div>
+
+    <p class="name">EduNova</p>
+    <p class="tagline">Know your strengths. Fix your gaps.</p>
+
+    <div class="badge">
+      <i class="ti ti-sparkles" style="font-size:13px;"></i>
+      Powered by Anthropic AI
+    </div>
+
+    <div class="divider"></div>
+
+    <p class="section-label">What is EduNova?</p>
+    <p class="desc">EduNova is an AI-powered academic dashboard that transforms your marks, attendance, and behaviour into clear, actionable insights. Whether you're aiming for a top grade or just trying to stay on track — EduNova gives you a complete, honest picture of your academic journey and tells you exactly what to do next.</p>
+
+    <div class="features">
+      <div class="feat">
+        <i class="ti ti-radar"></i>
+        <p class="feat-title">Radar analysis</p>
+        <p class="feat-desc">Visual subject-by-subject performance chart</p>
+      </div>
+      <div class="feat">
+        <i class="ti ti-robot"></i>
+        <p class="feat-title">AI advisor</p>
+        <p class="feat-desc">Chat with an AI that knows your data</p>
+      </div>
+      <div class="feat">
+        <i class="ti ti-mood-smile"></i>
+        <p class="feat-title">Behaviour score</p>
+        <p class="feat-desc">Attendance, focus & collaboration combined</p>
+      </div>
+      <div class="feat">
+        <i class="ti ti-bulb"></i>
+        <p class="feat-title">Smart suggestions</p>
+        <p class="feat-desc">Personalised tips based on your weak spots</p>
+      </div>
+      <div class="feat">
+        <i class="ti ti-chart-bar"></i>
+        <p class="feat-title">Marks breakdown</p>
+        <p class="feat-desc">Track scores across all subjects at once</p>
+      </div>
+      <div class="feat">
+        <i class="ti ti-trending-up"></i>
+        <p class="feat-title">Growth tracking</p>
+        <p class="feat-desc">See progress and identify where to push harder</p>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <p class="step-text">Enter your profile & marks</p>
+      </div>
+      <div class="step-line"></div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <p class="step-text">Get AI analysis instantly</p>
+      </div>
+      <div class="step-line"></div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <p class="step-text">Act on your insights</p>
+      </div>
+    </div>
+
+    <a href="/index.html" class="btn">
+      Get started <i class="ti ti-arrow-right" style="font-size:14px;"></i>
+    </a>
+    <p class="note">Free to use &nbsp;·&nbsp; No sign-up required</p>
+
+    <div class="footer">
+      <span><i class="ti ti-lock" style="font-size:13px;"></i> Private &amp; secure</span>
+      <span><i class="ti ti-device-mobile" style="font-size:13px;"></i> Works on all devices</span>
+      <span><i class="ti ti-bolt" style="font-size:13px;"></i> Instant results</span>
+    </div>
+
+  </div>
+</body>
+</html>
