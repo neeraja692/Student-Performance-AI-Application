@@ -8,18 +8,16 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ─────────────────────────────
-// MIDDLEWARE
-// ─────────────────────────────
 app.use(cors());
 app.use(express.json());
 
-// ✅ Serve frontend (public/index.html)
-app.use(express.static(path.join(__dirname, "public")));
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "coverpage.html"));
+});
 
-// ─────────────────────────────
+//  Serve frontend (public/index.html)
+app.use(express.static(path.join(__dirname, "public")));
 // GEMINI SETUP
-// ─────────────────────────────
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // 🔥 Primary + fallback models
@@ -31,19 +29,14 @@ const fallbackModel = genAI.getGenerativeModel({
   model: "gemini-2.0-flash"
 });
 
-// ─────────────────────────────
-// HEALTH CHECK
-// ─────────────────────────────
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     message: "EduNova AI running"
   });
 });
-
-// ─────────────────────────────
 // CHAT ENDPOINT
-// ─────────────────────────────
+
 app.post("/chat", async (req, res) => {
   try {
     const { message, studentData } = req.body;
