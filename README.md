@@ -23,7 +23,7 @@ EduNova is an AI-powered academic dashboard that transforms your marks, attendan
 | Layer | Technology |
 |-------|------------|
 | Frontend | HTML, CSS, Tailwind CSS, Chart.js |
-| Backend | Node.js, Express v5 |
+| Backend | Node.js, Express.js|
 | AI | Google Gemini 2.5 Flash (fallback: Gemini 2.0 Flash) |
 
 ---
