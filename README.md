@@ -87,11 +87,4 @@ Open your browser at `http://localhost:3000`
 
 ---
 
-## 📄 License
-
-MIT License — free to use, modify, and distribute.
-├── package.json
-└── .gitignore                
-```
-
 
